@@ -1,30 +1,14 @@
-/** Draw a stick figure on a uniformly scaled Canvas 2D stage. */
+/** Draw a stick figure. The y coordinate is the floor and hand targets use stage coordinates. */
 export function drawStickFigure(ctx, {
-  x, y, scale = 1, stride = 0, phase = 0, lean = 0, bend = 0, hop = 0,
-  reach = 0, target = null, look = 1, celebrate = 0, mood = "neutral", blink = false, ink = "#f9dfaf", accent = "#ff9a5d",
+  x, y, scale = 1, stride = 0, phase = 0, lean = 0, bend = 0, hop = 0, sit = 0, stance = 0,
+  reach = 0, target = null, otherReach = 0, otherTarget = null, look = 1, celebrate = 0,
+  mood = "neutral", blink = false, ink = "#f9dfaf", accent = "#ff9a5d",
 }) {
-  const base = y - hop;
-  const swing = Math.sin(phase) * stride;
+  const base = y - hop - 41 * sit * scale;
   const chest = [lean, -139 + bend * .72];
   const hip = [lean * .35, -77 + bend * .43];
   const head = [lean * 1.22, -175 + bend * .84];
-  const rest = [chest[0] + (30 + swing * .36) * look, chest[1] + 58];
-  let hand = rest;
-  if (target) {
-    const dx = (target[0] - x) / scale - chest[0];
-    const dy = (target[1] - base) / scale - chest[1];
-    const extension = Math.min(1, 110 / Math.max(1, Math.hypot(dx, dy)));
-    hand = [rest[0] + reach * (chest[0] + dx * extension - rest[0]),
-            rest[1] + reach * (chest[1] + dy * extension - rest[1])];
-  }
-  const other = [chest[0] - (36 + swing * .32) * look, chest[1] + 58];
-  if (celebrate) {
-    hand = [hand[0] + celebrate * (chest[0] + 48 * look - hand[0]),
-            hand[1] + celebrate * (head[1] - 33 - hand[1])];
-    other[1] += celebrate * (head[1] - 25 - other[1]);
-  }
-  const elbow = [(hand[0] + chest[0]) / 2 + 5 * look, (hand[1] + chest[1]) / 2 + 16];
-  const otherElbow = [(other[0] + chest[0]) / 2 - 6 * look, (other[1] + chest[1]) / 2 + 10];
+  const mix = (a, b, amount) => a + (b - a) * amount;
   ctx.save();
   ctx.translate(x, base);
   ctx.scale(scale, scale);
@@ -38,16 +22,64 @@ export function drawStickFigure(ctx, {
     ctx.lineWidth = width;
     ctx.stroke();
   }
-  for (const direction of [-1, 1]) {
-    const foot = [(22 - swing * .65) * direction,
-                  -Math.max(0, direction * swing) * .30 - (hop ? 8 : 0)];
-    const knee = [(foot[0] + hip[0]) / 2 + direction * 10,
-                  -42 + bend * .17 - (hop ? 11 : 0)];
-    path([hip, knee, foot, [foot[0] + direction * 12, foot[1]]]);
+  function arm(direction, destination, reachAmount) {
+    const front = direction === look;
+    const offset = -direction * Math.sin(phase) * stride * .47;
+    const shoulder = [chest[0] + direction * 5, chest[1] + (front ? 0 : 3)];
+    let [handX, handY] = [
+      mix(chest[0], hip[0], .78) + direction * (front ? 13 : 10) + look * (4 + 13 * sit) + offset,
+      chest[1] + (front ? 66 : 62) - sit * (front ? 18 : 10),
+    ];
+    if (destination) {
+      const dx = (destination[0] - x) / scale - chest[0];
+      const dy = (destination[1] - base) / scale - chest[1];
+      const extension = Math.min(1, 110 / Math.max(1, Math.hypot(dx, dy)));
+      handX = mix(handX, chest[0] + dx * extension, reachAmount);
+      handY = mix(handY, chest[1] + dy * extension, reachAmount);
+    }
+    if (celebrate) {
+      const fist = front ? [head[0] + look * 37, head[1] - 35] : [chest[0] - look * 15, chest[1] + 22];
+      handX = mix(handX, fist[0], celebrate);
+      handY = mix(handY, fist[1], celebrate);
+    }
+    const dx = handX - shoulder[0];
+    const dy = handY - shoulder[1];
+    const flex = Math.max(reachAmount, celebrate) * Math.max(5, Math.min(20, (106 - Math.hypot(dx, dy)) * .34));
+    const elbow = [shoulder[0] + dx * .43 - direction * flex * .34, shoulder[1] + dy * .49 + flex];
+    path([chest, shoulder, elbow, [handX, handY]]);
+  }
+  const footSpacing = 13 + stance * .33 + sit * 4;
+  for (const direction of [-look, look]) {
+    const stepPhase = phase + (direction < 0 ? 0 : Math.PI);
+    const foot = [
+      direction * footSpacing + look * 22 * sit + Math.sin(stepPhase) * stride * .82,
+      41 * sit - Math.max(0, Math.sin(stepPhase + .36)) * stride * .57 - hop * .035,
+    ];
+    const knee = [
+      mix(hip[0], foot[0], .49) + look * (3 + 32 * sit + .26 * bend) + direction * 2,
+      mix(hip[1], foot[1], .51) - sit * 9,
+    ];
+    const toe = [foot[0] + look * (direction === look ? 11 : 8), foot[1]];
+    path([hip, knee, foot, toe]);
   }
   path([hip, chest, [head[0], head[1] + 24]]);
-  path([chest, elbow, hand]);
-  path([chest, otherElbow, other]);
+  arm(-look, otherTarget, otherReach);
+  arm(look, target, reach);
+
+  const tieX = mix(chest[0], head[0], .66);
+  const tieY = mix(chest[1], head[1] + 24, .65);
+  ctx.beginPath();
+  for (const direction of [-1, 1]) {
+    ctx.moveTo(tieX, tieY);
+    ctx.lineTo(tieX + direction * 12, tieY - 7);
+    ctx.quadraticCurveTo(tieX + direction * 15, tieY, tieX + direction * 12, tieY + 7);
+    ctx.closePath();
+  }
+  ctx.fillStyle = ink;
+  ctx.fill();
+  ctx.fillStyle = accent;
+  ctx.fillRect(tieX - 3, tieY - 3.5, 6, 7);
+
   ctx.beginPath();
   ctx.arc(...head, 26, 0, Math.PI * 2);
   ctx.fillStyle = "#19262c";
@@ -86,6 +118,5 @@ export function drawStickFigure(ctx, {
     path([[hx - 4, hy + 12], [hx + 8, hy + 11]], ink, 1.7);
   }
 
-  path([[chest[0] - 10, chest[1] - 3], [chest[0] + 12, chest[1] + 2], [chest[0] + 21, chest[1] + 13]], accent, 4);
   ctx.restore();
 }
