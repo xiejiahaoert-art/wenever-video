@@ -19,6 +19,7 @@ description: 把笔记、逐字稿和参考片做成有叙事、角色动作和�
 - 做内容、分镜和视觉设计时读 [导演工作表](references/direction.md)。
 - 要写开场、排前 5 秒或排查片头和正文断开的问题，读 [开场叙事工作表](references/opening-story.md)。
 - 要做自然的角色表演、镜头衔接或程序动效，读 [动画表演与转场](references/performance-transitions.md)。要对照具体画面和 20 类动效，读 [抖音参考片拆解](references/douyin-motion-cases.md)。
+- 要用代码把数学、模型或流程演成连续画面，读 [浙大猫学长的 Vibe Motion 案例](references/zjucat-vibe-motion.md)。要选拟音、校卡点或调用公开 Sound Skill，读 [动作音效与 Sound Skill](references/sound-skill.md)。
 - 做动画、换比例、卡点、混音和修片尾时读 [渲染、配乐和验收](references/production.md)。
 - 要设计更丰富的表演、镜头和图文层级，读 [表演、剪辑与教学画面的依据](references/research.md)。
 - 要了解各步骤怎样组合，读 [Git 与 GitHub 案例](references/git-github-case.md)。
